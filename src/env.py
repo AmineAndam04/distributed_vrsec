@@ -2,7 +2,7 @@ from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.side_channel.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 from mlagents_envs.side_channel.stats_side_channel import StatsSideChannel
 #from mlagents_envs.envs.unity_parallel_env import UnityParallelEnv
-from unity_parallel_env import UnityParallelEnv
+from src.unity_parallel_env import UnityParallelEnv
 import uuid
 class HyperParametersSideChannel(SideChannel):
     def __init__(self):

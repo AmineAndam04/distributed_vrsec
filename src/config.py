@@ -29,8 +29,8 @@ class Args:
     seed:int = 5004562
     normalize_advantage: bool = True
     norm_first: bool = True
-    policy:str = "Policy_NEmbRole_v4"
-    logs_path:str = "Policy_NEmbRole_v4"#"/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/Hostclinet/Run-Policy_EmbRole-clip1-ent1"
+    policy:str = "role_emb"
+    logs_path:str = "Embedded"#"/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/Hostclinet/Run-Policy_EmbRole-clip1-ent1"
     env_path:str = "/home/amine.andam/HostClient/env/FixReport/AppLinux.x86_64" #"/home/amine.andam/HostClient/env/SameReaward/AppLinux.x86_64"
     save_path:str = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_NEmbRole_v4"
     device: str = "cpu" #"cuda" 

@@ -1,86 +1,13 @@
-import os
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from dataclasses import dataclass,asdict
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
-import glob
+import torch.nn.functional as F
 
-from buffer import Buffer
-import utils
-import pad_mask
-from actorcritic import *
-from config import Args
-from env import load_env
-import random
-import argparse
-from dataclasses import  asdict
-import datetime
-report_length = 12
-one_hot = {
-    (0, 1, 0): 3,
-    (0, 0, 0): 8,
-    (0, 0, 1): 8,
-    (0, 1, 1): 3,
-    (1, 0, 0): report_length
-}
-def check_report(obs):
-        """
-        Reformat the raw observations received from Unity.
-        It removes the padding and determines the action mask.
-        roles: 1 if it's the host, zero otherwise
-        """
-        processed_obs = dict()
-        action_masks = dict()
-        roles  = []
-        for key,obs_ in obs.items():
-            if "Host" in key:
-                roles.append(1)
-            else:
-                roles.append(0)
-            meet_cond = np.where(obs_ == 99)
-            if len(meet_cond[0]) > 1 :
-                obs_i,hot_i = meet_cond[0][0],meet_cond[0][1]
-            else:
-                obs_i,hot_i = meet_cond[0][0],-1
-            
-            raw_obs = obs_[:obs_i]
-            raw_hot = obs_[obs_i+1:hot_i]
-            #if "Host" in key:
-                #print('Obs_i: ',raw_obs )
-                #print('Hot_i: ',raw_hot )
-            i,j = 0,0
-            obs_cat = []
-            action_mask = []
-            while (i <= (len(raw_hot) -3)):
-                code = tuple(raw_hot[i:i+3])
-                idx = one_hot[code]
-                obs_cat.append(np.append(raw_obs[j:j+idx],code))
-                if code  in [(0,0,0),(0,1,1)]:
-                        action_mask.append(0)
-                else:
-                        action_mask.append(1)
+import os
+import src.utils as utils
+from src.buffer import Buffer
+import src.pad_mask as pad_mask
 
-                if code == (1, 0, 0):
-                    print("The received report is ", raw_obs[j:j+idx])
-                i+=3
-                j+=idx
-            assert len(obs_cat) == len(raw_hot) //3, "Something is wrong with removing padding"
-            processed_obs[key] = obs_cat
-            action_masks[key] = action_mask
-
-        
-def set_seed(seed,device):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-class IPPO():
+class MARL_PPO():
     
     
     def __init__(self,
@@ -324,47 +251,4 @@ class IPPO():
             print(f"Model loaded from {self.load_path}")
         else:
             print(f"No model found at {self.load_path}")
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Override configuration values from the command line.")
-
-    # Automatically add arguments based on the dataclass fields
-    for field, value in asdict(Args()).items():
-        arg_type = type(value)
-        if arg_type == bool:
-            # Special handling for booleans: allow --flag and --no-flag
-            parser.add_argument(f"--{field}", dest=field, action="store_true", help=f"Enable {field}")
-            parser.add_argument(f"--no-{field}", dest=field, action="store_false", help=f"Disable {field}")
-        else:
-            parser.add_argument(f"--{field}", type=arg_type, default=value, help=f"Set {field} (default: {value})")
-
-    parser.set_defaults(**asdict(Args()))
-    return parser.parse_args()
-if __name__ == "__main__":
-    #args = Args()
-    args = parse_args()
-    set_seed(args.seed,args.device)
-    #print(args.logs_path)
-   
-    time_token = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    
-    args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/", args.logs_path + "_" + time_token)
-    args.save_path = args.save_path + "_" + time_token
-    print(args)
-    writer = SummaryWriter(args.logs_path) 
-    hyperparams = vars(args)
-    writer.add_text('Hyperparameters', str(hyperparams), 0)
-    env_ = load_env(args.env_path,args.seed)
-    model = IPPO(env_,args,Policy_NEmbRole_v4,logger=writer)
-    list_of_files = glob.glob(os.path.join(args.save_path, '*.pt')) 
-    if list_of_files:
-        latest_file = max(list_of_files, key=os.path.getctime)
-        print(f"Loading saved model from {latest_file}")
-        model.load_model(latest_file)
-    else:
-        print("Creating new model")
-    model.train()
-    writer.close()
-    env_.close()
-
 

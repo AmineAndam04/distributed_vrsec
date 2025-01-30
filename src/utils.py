@@ -1,5 +1,7 @@
-import numpy as np
 import torch
+import numpy as np
+import random
+
 report_length = 12
 one_hot = {
     (0, 1, 0): 3,
@@ -163,3 +165,12 @@ def norm_d(grads, d):
     total_norm_d = torch.linalg.vector_norm(torch.stack(norms), 2)
     
     return total_norm_d
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
