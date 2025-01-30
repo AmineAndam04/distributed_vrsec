@@ -16,6 +16,7 @@ from env import load_env
 import random
 import argparse
 from dataclasses import  asdict
+import datetime
 report_length = 12
 one_hot = {
     (0, 1, 0): 3,
@@ -119,6 +120,7 @@ class IPPO():
         self.normalize_advantage =args.normalize_advantage
         self.norm_first = args.norm_first
         self.logger = logger
+        #self.evaluate_freq = args.evaluate_freq
 
 
         # Initialize the trainer
@@ -342,7 +344,12 @@ if __name__ == "__main__":
     #args = Args()
     args = parse_args()
     set_seed(args.seed,args.device)
-    print(args.logs_path)
+    #print(args.logs_path)
+   
+    time_token = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/", args.logs_path + "_" + time_token)
+    args.save_path = args.save_path + "_" + time_token
     print(args)
     writer = SummaryWriter(args.logs_path) 
     hyperparams = vars(args)

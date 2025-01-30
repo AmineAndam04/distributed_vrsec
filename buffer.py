@@ -84,7 +84,10 @@ class Buffer():
         
         for agent in self.agents:
             #adv,ret = self.indiv_gae_gt(self.rewards[agent],self.values[agent],self.done,self.gae_lambda,self.gamma)
-            adv,ret = self.indiv_gae_gt(self.common_reward ,self.values[agent],self.done,self.gae_lambda,self.gamma)
+            # normalize the rewards before
+            normalized = np.array(self.common_reward)
+            normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)
+            adv,ret = self.indiv_gae_gt(normalized,self.values[agent],self.done,self.gae_lambda,self.gamma)
             self.advantages[agent] = adv
             self.returns[agent] = ret
     
