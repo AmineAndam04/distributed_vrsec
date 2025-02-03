@@ -9,14 +9,18 @@ class Buffer():
             agents,
             gae_lambda,
             gamma,
-            rwd_scale
+            normalize_advantage,
+            rwd_scale,
+            host_weight,
                     ):
         self.buffer_size = buffer_size
         self.agents = agents
         self.gae_lambda = gae_lambda
         self.gamma = gamma
         self.batch_size = batch_size
+        self.normalize_advantage = normalize_advantage
         self.rwd_scale = rwd_scale
+        self.host_weight = host_weight
         self.reset()
     def reset(self):
         self.obs = { key: [0] * self.buffer_size for key in self.agents }
@@ -42,8 +46,8 @@ class Buffer():
             self.values[agent][self.pos] = value[agent]
             self.rewards[agent][self.pos] = rewards[agent]
             self.done[self.pos] = done
-            com_rwd += rewards[agent]
-        self.common_reward[self.pos] = com_rwd / len(self.agents)
+            com_rwd += self.host_weight * rewards[agent] if  "Host" in agent else rewards[agent]
+        self.common_reward[self.pos] = com_rwd / (len(self.agents)-1 + self.host_weight)
         #print("The common reward is",self.common_reward[self.pos])
         self.pos += 1
     def get(self):
@@ -77,7 +81,10 @@ class Buffer():
             adv = delta + gamma * gae_lambda * adv * terminal
             advantage[idx] = adv
             returns[idx] = adv + values[idx]
-        return advantage, returns
+        if self.normalize_advantage and len(advantage) > 1:
+                    advantage = np.array(advantage)
+                    advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
+        return list(advantage), returns
     
 
     def compute_advantage_and_returns(self):

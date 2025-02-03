@@ -25,12 +25,13 @@ class Args:
     grad_clip:bool = True
     max_grad: float = 10
     clip_vf:float= True
-    rwd_scale:float = 1
+    rwd_scale:float = 1.0
+    host_weight:float =1
     seed:int = 5004562
     normalize_advantage: bool = True
     norm_first: bool = True
     policy:str = "role_emb"
     logs_path:str = "Embedded"#"/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/Hostclinet/Run-Policy_EmbRole-clip1-ent1"
     env_path:str = "/home/amine.andam/HostClient/env/FixReport/AppLinux.x86_64" #"/home/amine.andam/HostClient/env/SameReaward/AppLinux.x86_64"
-    save_path:str = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_NEmbRole_v4"
+    save_path:str = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy"
     device: str = "cpu" #"cuda" 

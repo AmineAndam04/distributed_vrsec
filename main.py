@@ -11,7 +11,7 @@ import datetime
 import os
 import glob
 
-policies = {"role_emb":Policy_EmbRole,"no_role_emb":Policy_NEmbRole,"skip_role_emb":Policy_SkipREmbRole}
+policies = {"role_emb":Policy_EmbRole,"role_em_v2":Policy_EmbRole_v2,"no_role_emb":Policy_NEmbRole,"skip_role_emb":Policy_SkipREmbRole}
 def parse_args():
     parser = argparse.ArgumentParser(description="Override configuration values from the command line.")
 
@@ -34,7 +34,7 @@ def main(args):
     set_seed(args.seed)
 
     time_token = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/", args.logs_path + "_" + time_token)
+    args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/Updated", args.logs_path + "_" + time_token)
     args.save_path = args.save_path + "_" + time_token
     writer = SummaryWriter(args.logs_path) 
     hyperparams = vars(args)

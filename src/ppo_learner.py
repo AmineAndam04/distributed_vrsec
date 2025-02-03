@@ -47,6 +47,7 @@ class MARL_PPO():
         self.normalize_advantage =args.normalize_advantage
         self.norm_first = args.norm_first
         self.logger = logger
+        self.host_weight = args.host_weight
         #self.evaluate_freq = args.evaluate_freq
 
 
@@ -55,8 +56,8 @@ class MARL_PPO():
 
     def init_trainer(self,policy):
         _ = self.env.reset()
-        self.buffer = Buffer(buffer_size= self.buffer_size,batch_size = self.batch_size,agents = self.env.agents,
-                             gae_lambda = self.gae_lambda,gamma = self.gamma,rwd_scale = self.rwd_scale)
+        self.buffer = Buffer(buffer_size= self.buffer_size,batch_size = self.batch_size,agents = self.env.agents,normalize_advantage=self.normalize_advantage,
+                             gae_lambda = self.gae_lambda,gamma = self.gamma,rwd_scale = self.rwd_scale,host_weight=self.host_weight)
         self.policy = policy(self.in_features,self.d_model,self.nhead,self.dim_feedforward,self.rep_length,self.norm_first,self.max_pool) 
         self.policy = self.policy.to(self.device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr = self.learning_rate)
@@ -65,7 +66,7 @@ class MARL_PPO():
                                            lr_final = self.lr_final , total_steps = self.total_timesteps)
         self.current_time_step =0
         if self.ent_decay:
-            self.ent_schedular = utils.LinearDecayENT( lr_start = self.ent_coef, lr_final = 0 , total_steps = self.total_timesteps)
+            self.ent_schedular = utils.LinearDecayENT( lr_start = self.ent_coef, lr_final = 0.0001 , total_steps = 100000)
         
     
     def update_actor_critic(self):
@@ -107,11 +108,10 @@ class MARL_PPO():
 
                 # clipped surrogate loss
                 advantages = torch.tensor(batch_data["advantages"],dtype = torch.float32).to(self.device)
-                if self.normalize_advantage and len(advantages) > 1:
-                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+                
                 policy_loss_1 = advantages * ratio
                 policy_loss_2 = advantages * torch.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)
-                policy_loss = -torch.min(policy_loss_1, policy_loss_2).mean()
+                policy_loss = -torch.min(policy_loss_1, policy_loss_2).sum()
                 policy_losses.append(policy_loss.item())
 
                 clip_fraction = torch.mean((torch.abs(ratio - 1) > self.clip_range).float()).item()
@@ -127,11 +127,11 @@ class MARL_PPO():
                     values_pred = value
                     
                 value_target = torch.tensor(batch_data["returns"],dtype=torch.float32).to(self.device)
-                value_loss = F.mse_loss(value_target, values_pred)
+                value_loss = F.mse_loss(value_target, values_pred,reduction="sum")
                 value_losses.append(value_loss.item())
                 #print("value_loss",value_loss)
 
-                entropy_loss = -torch.mean(entropy)
+                entropy_loss = -torch.sum(entropy)
                 entropy_losses.append(entropy_loss.item())
                 loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss
                 losses.append(loss.item())
