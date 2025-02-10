@@ -35,3 +35,6 @@ class Args:
     env_path:str = "/home/amine.andam/HostClient/env/FixReport/AppLinux.x86_64" #"/home/amine.andam/HostClient/env/SameReaward/AppLinux.x86_64"
     save_path:str = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy"
     device: str = "cpu" #"cuda" 
+    train:bool = True
+    env_path_deploy:str = "/home/amine.andam/HostClient/env/Deploy/AppLinux.x86_64"
+    

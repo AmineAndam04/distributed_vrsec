@@ -48,7 +48,7 @@ class Policy_EmbRole(nn.Module):
         )
         self.initialize()
         
-    def forward(self,roles,obs,obs_mask,action_mask):
+    def forward(self,roles,obs,obs_mask,action_mask,evaluate= False):
         role_embed = self.role_embedding(roles)
         state_embed =  self.state_norm(self.state_embedding(obs))
         embed = state_embed + role_embed.unsqueeze(dim  = 1)
@@ -60,7 +60,10 @@ class Policy_EmbRole(nn.Module):
         pooled_enc_out = self.pooling(enc_out)
         pooled_enc_out = pooled_enc_out.squeeze(-1)  
         value = self.value(pooled_enc_out)
-        actions = torch.bernoulli(proba)
+        if evaluate:
+            actions = (proba > 0.5).float()
+        else:
+            actions = torch.bernoulli(proba)
         log_probs = actions * torch.log(proba + 1e-10) + \
                             (1 - actions) * torch.log(1 - proba + 1e-10)
         log_probs = log_probs * action_mask
@@ -155,7 +158,7 @@ class Policy_NEmbRole(nn.Module):
         )
         self.initialize()
         
-    def forward(self,roles,obs,obs_mask,action_mask):
+    def forward(self,roles,obs,obs_mask,action_mask,evaluate=False):
         #role_embed = self.role_embedding(roles)
         #print(obs.shape)
         state_embed =  self.state_embedding(obs)
@@ -168,7 +171,10 @@ class Policy_NEmbRole(nn.Module):
         pooled_enc_out = self.pooling(enc_out)
         pooled_enc_out = pooled_enc_out.squeeze(-1)  
         value = self.value(pooled_enc_out)
-        actions = torch.bernoulli(proba)
+        if evaluate:
+            actions = (proba > 0.5).float()
+        else:
+            actions = torch.bernoulli(proba)
         log_probs = actions * torch.log(proba + 1e-10) + \
                             (1 - actions) * torch.log(1 - proba + 1e-10)
         log_probs = log_probs * action_mask
@@ -263,7 +269,7 @@ class Policy_SkipREmbRole(nn.Module):
         )
         self.initialize()
         
-    def forward(self,roles,obs,obs_mask,action_mask):
+    def forward(self,roles,obs,obs_mask,action_mask,evaluate=False):
         role_embed = self.role_embedding(roles)
         state_embed =  self.state_norm(self.state_embedding(obs))
         embed = state_embed + role_embed.unsqueeze(dim  = 1)
@@ -276,7 +282,10 @@ class Policy_SkipREmbRole(nn.Module):
         pooled_enc_out = self.pooling(enc_out)
         pooled_enc_out = pooled_enc_out.squeeze(-1)  
         value = self.value(pooled_enc_out)
-        actions = torch.bernoulli(proba)
+        if evaluate:
+            actions = (proba > 0.5).float()
+        else:
+            actions = torch.bernoulli(proba)
         log_probs = actions * torch.log(proba + 1e-10) + \
                             (1 - actions) * torch.log(1 - proba + 1e-10)
         log_probs = log_probs * action_mask

@@ -127,11 +127,11 @@ class MARL_PPO():
                     values_pred = value
                     
                 value_target = torch.tensor(batch_data["returns"],dtype=torch.float32).to(self.device)
-                value_loss = F.mse_loss(value_target, values_pred,reduction="sum")
+                value_loss = F.mse_loss(value_target, values_pred)
                 value_losses.append(value_loss.item())
                 #print("value_loss",value_loss)
 
-                entropy_loss = -torch.sum(entropy)
+                entropy_loss = -torch.mean(entropy)
                 entropy_losses.append(entropy_loss.item())
                 loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss
                 losses.append(loss.item())
