@@ -38,6 +38,7 @@ class Buffer():
         self.num_eps  = 0
     def add(self,obs,action_mask,bin_actions,rewards,log_prob,value,done):
         com_rwd = 0
+        self.done[self.pos] = done
         for agent in self.agents:
             self.obs[agent][self.pos] = obs[agent]
             self.action_mask[agent][self.pos] = action_mask[agent]
@@ -45,10 +46,8 @@ class Buffer():
             self.log_prob[agent][self.pos] = log_prob[agent]
             self.values[agent][self.pos] = value[agent]
             self.rewards[agent][self.pos] = rewards[agent]
-            self.done[self.pos] = done
             com_rwd += self.host_weight * rewards[agent] if  "Host" in agent else rewards[agent]
         self.common_reward[self.pos] = com_rwd / (len(self.agents)-1 + self.host_weight)
-        #print("The common reward is",self.common_reward[self.pos])
         self.pos += 1
     def get(self):
         return self.obs, self.action_mask, self.actions,self.log_prob,self.values,self.rewards,self.done,self.advantages, self.returns,self.roles
@@ -84,13 +83,18 @@ class Buffer():
         if self.normalize_advantage and len(advantage) > 1:
                     advantage = np.array(advantage)
                     advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
-        return list(advantage), returns
+
+                    returns = np.array(returns)
+                    returns = (returns - returns.mean()) / (returns.std() + 1e-8)
+        return list(advantage), list(returns)
     
 
     def compute_advantage_and_returns(self):
         
         for agent in self.agents:
-            #adv,ret = self.indiv_gae_gt(self.rewards[agent],self.values[agent],self.done,self.gae_lambda,self.gamma)
+            # normalized = np.array(self.rewards[agent])
+            # normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)
+            # adv,ret = self.indiv_gae_gt(normalized,self.values[agent],self.done,self.gae_lambda,self.gamma)
             # normalize the rewards before
             normalized = np.array(self.common_reward)
             normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)

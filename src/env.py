@@ -16,13 +16,12 @@ class HyperParametersSideChannel(SideChannel):
         for value in float_list:
             msg.write_float32(value)  # Write each float value
         self.queue_message_to_send(msg)
-def load_env(env_path,seed):
-    report_length = 12
-    hyperparameters = [5, 0.5, 0.5, 2.28, 1, report_length]
+def load_env(env_path,seed,rep_length,worker_id=5):
+    hyperparameters = [5, 0.5, 0.5, 2.28, 1, rep_length]
     hyperparametersChannel = HyperParametersSideChannel()
     hyperparametersChannel.send_hyperparameters(hyperparameters)
     stats_side_channel = StatsSideChannel()
     side_channels = [hyperparametersChannel,stats_side_channel]
-    env = UnityEnvironment(file_name=env_path, side_channels=side_channels,worker_id=1,no_graphics=True,seed=seed)
+    env = UnityEnvironment(file_name=env_path, side_channels=side_channels,worker_id=worker_id,no_graphics=True,seed=seed)
     env = UnityParallelEnv(env)
     return env

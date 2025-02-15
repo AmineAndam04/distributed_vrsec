@@ -5,12 +5,13 @@ from dataclasses import asdict
 from src.utils import set_seed
 from src.env import load_env
 from src.ppo_learner import MARL_PPO
+from src.sep_ppo_learner import MARL_HEPPO
 from src.actorcritic import *
 from src.config import Args
 import datetime
 import os
 import glob
-from src.evaluate import evaluate
+from src.evaluate import evaluate_test_env,evaluate_from_checkpoint 
 policies = {"role_emb":Policy_EmbRole,"role_em_v2":Policy_EmbRole_v2,"no_role_emb":Policy_NEmbRole,"skip_role_emb":Policy_SkipREmbRole}
 def parse_args():
     parser = argparse.ArgumentParser(description="Override configuration values from the command line.")
@@ -34,15 +35,18 @@ def main(args):
     set_seed(args.seed)
     if args.train:
         time_token = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/Updated", args.logs_path + "_" + time_token)
+        args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/Last", args.logs_path + "_" + time_token)
         args.save_path = args.save_path + "_" + time_token
         writer = SummaryWriter(args.logs_path) 
         hyperparams = vars(args)
         writer.add_text('Hyperparameters', str(hyperparams), 0)
         policy = policies[args.policy]
-        env = load_env(args.env_path,args.seed)
-
-        model = MARL_PPO(env,args,policy,logger=writer)
+        env = load_env(args.env_path,args.seed,rep_length= args.rep_length)
+        test_env = load_env(args.env_path,args.seed,rep_length= args.rep_length,worker_id=2)
+        if args.het : 
+            model = MARL_HEPPO(env,test_env,args,policy,logger=writer)
+        else :
+            model = MARL_PPO(env,test_env,args,policy,logger=writer)
 
         list_of_files = glob.glob(os.path.join(args.save_path, '*.pt')) 
         if list_of_files:
@@ -56,7 +60,7 @@ def main(args):
         env.close()
     else:
         env = load_env(args.env_path_deploy,args.seed)
-        evaluate(env)
+        evaluate_from_checkpoint(env)
         env.close()
 
     

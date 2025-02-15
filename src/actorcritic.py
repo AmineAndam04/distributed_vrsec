@@ -147,7 +147,8 @@ class Policy_NEmbRole(nn.Module):
             batch_first=True)
         self.report_proj =nn.Sequential(nn.Linear(in_features = d_model, out_features = 16),
                                              nn.GELU(),
-                                             nn.Linear(in_features = 16, out_features = rep_length)) 
+                                             nn.Linear(in_features = 16, out_features = rep_length),
+                                             nn.Tanh()) 
         self.decison_layer = nn.Sequential(nn.Linear(in_features = rep_length, out_features = 32),
                                              nn.GELU(),
                                              nn.Linear(in_features = 32, out_features = 1)) 

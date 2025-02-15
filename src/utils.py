@@ -2,21 +2,22 @@ import torch
 import numpy as np
 import random
 
-report_length = 12
-one_hot = {
-    (0, 1, 0): 3,
-    (0, 0, 0): 8,
-    (0, 0, 1): 8,
-    (0, 1, 1): 3,
-    (1, 0, 0): report_length
-}
 
-def process_obs(obs):
+
+def process_obs(obs,rep_length = 5):
         """
         Reformat the raw observations received from Unity.
         It removes the padding and determines the action mask.
         roles: 1 if it's the host, zero otherwise
         """
+        
+        one_hot = {
+            (0, 1, 0): 3,
+            (0, 0, 0): 8,
+            (0, 0, 1): 8,
+            (0, 1, 1): 3,
+            (1, 0, 0): rep_length
+        }
         processed_obs = dict()
         action_masks = dict()
         roles  = []
@@ -62,7 +63,18 @@ def actions_tosend_(actions,reports,action_mask):
     actions_tosend = dict()
     bin_actions = dict()
     for idx, (key, item) in enumerate(action_mask.items()):
-        a_ = a[idx][:len(item)]
+        
+        try: 
+            if a.ndim == 1:
+                a_ = a[:len(item)]
+            else: 
+                a_ = a[idx][:len(item)]
+        except:
+            print(a)
+            print(action_mask)
+            print(rep)
+        
+
         bin_actions[key] = a_
         if "Host" not in key:
             rep_ = rep[idx][:len(item)].flatten()
@@ -83,6 +95,10 @@ def process_logprob_value(log_probs,values,keys):
     values = values.detach().cpu().squeeze().numpy()
     logprob_tostor = dict()
     values_tostore = dict()
+    if log_probs.ndim == 0:
+        log_probs = [log_probs]
+        values = [values]
+    
     for log_prob,value,key in zip(log_probs,values,keys):
         logprob_tostor[key] = log_prob
         values_tostore[key] = value

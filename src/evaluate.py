@@ -8,7 +8,63 @@ import src.pad_mask as pad_mask
 import os
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-def evaluate(env):
+def evaluate_test_env(env,policy,rep_length,episod_length,hpolicy=None):
+    policy.eval()
+    results = []
+    ep_rewards = []
+    for _ in range(10):
+        rewards,stats = collect_stats(env,policy,rep_length=rep_length,episod_length = episod_length,hpolicy = hpolicy)
+        metrics = compute_stats(stats)
+        results.append(metrics)
+        ep_rewards.append(rewards)
+    avg_rewards = {key: np.mean([ep[key] for ep in ep_rewards]) for key in env.agents}
+    avg_metrics = metric_averages(results)
+    return avg_rewards,avg_metrics
+
+
+def metric_averages(data):
+        host_metrics = {}
+        avatar_metrics = {}
+
+        for ep in range(len(data)):
+            for key, metrics in data[ep].items():
+                if "Avatar" in key:
+                    for metric, value in metrics.items():
+                        try:
+                            val = float(value)
+                        except Exception:
+                            val = 1
+                        avatar_metrics.setdefault(metric, []).append(val)
+                elif "Host" in key:
+                    host_data = data[ep].get("Host", {})
+                    for metric, value in host_data.items():
+                        try:
+                            val = float(value)
+                        except Exception:
+                            val = 1
+                        host_metrics.setdefault(metric, []).append(val)
+                else:
+                    print("something is wrong")
+
+        # Compute the average metrics using np.nanmean (ignoring NaN values).
+        host_avg = {
+            metric: np.nan if np.all(np.isnan(filtered_values := np.array(values)[np.array(values) > 0])) 
+            else np.nanmean(filtered_values)
+            for metric, values in host_metrics.items()
+        }
+
+        avatar_avg = {
+            metric: np.nan if np.all(np.isnan(filtered_values := np.array(values)[np.array(values) > 0])) 
+            else np.nanmean(filtered_values)
+            for metric, values in avatar_metrics.items()
+        }
+
+        average_metrics = {
+            "Host": host_avg,
+            "Avatars": avatar_avg
+        }
+        return average_metrics 
+def evaluate_from_checkpoint(env,rep_length):
     skip_policy_net = Policy_SkipREmbRole(
         in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
         rep_length=12, norm_first=True, max_pool=True
@@ -39,7 +95,7 @@ def evaluate(env):
     for i,policy in enumerate(policies):
           results = []
           for _ in range(64):
-            stats = collect_stats(env,policy)
+            stats = collect_stats(env,policy,rep_length=rep_length)
             metrics = compute_stats(stats)
             results.append(metrics)
           to_save[names[i]] = results
@@ -195,25 +251,60 @@ def print_policy_averages(data):
 
 
 
-def collect_stats(env,policy,episod_length=60):
+def collect_stats(env,policy,rep_length,episod_length=60,hpolicy=None):
     obs = env.reset()
     step = 0
+    agents = env.agents
+    rwds = { key: []  for key in agents }
+    if hpolicy != None:
+        while (step < episod_length):
+                    obs_,action_mask,roles = utils.process_obs(obs,rep_length=rep_length)
+                    hpadded,hobs_mask = pad_mask.pad_and_mask([obs_[agent] for agent in obs_.keys() if 'Host' in agent])
+                    haction_mask_ = pad_mask.pad_action_([action_mask[agent] for agent in obs_.keys() if 'Host' in agent])
 
-    while (step < episod_length):
-                obs_,action_mask,roles = utils.process_obs(obs)
-                padded,obs_mask = pad_mask.pad_and_mask([obs_[agent] for agent in obs_.keys()])
-                action_mask_ = pad_mask.pad_action_([action_mask[agent] for agent in obs_.keys()])
-                with torch.no_grad():
-                    roles = torch.tensor(roles,dtype=torch.int32)
-                    actions, reports, log_prob,value = policy(roles = roles,obs = padded,obs_mask = obs_mask ,action_mask = action_mask_,evaluate=True)
+                    # For the participants
+                    padded,obs_mask = pad_mask.pad_and_mask([obs_[agent] for agent in obs_.keys() if 'Host' not in agent])
+                    action_mask_ = pad_mask.pad_action_([action_mask[agent] for agent in obs_.keys() if 'Host' not in agent])
+                    with torch.no_grad():
+                        
+                        hactions, hreports, _,_ = hpolicy(roles = None,obs = hpadded,obs_mask = hobs_mask ,action_mask = haction_mask_,evaluate=True)
+                        actions, reports, _,_ = policy(roles = None,obs = padded,obs_mask = obs_mask ,action_mask = action_mask_,evaluate=True)
+                    _, hactions_tosend = utils.actions_tosend_(hactions,hreports,{agent :action_mask[agent] for agent in obs_.keys() if 'Host' in agent })
+                    _, actions_tosend = utils.actions_tosend_(actions,reports,{agent :action_mask[agent] for agent in obs_.keys() if 'Host' not in agent })
 
-                bin_actions, actions_tosend = utils.actions_tosend_(actions,reports,action_mask)
-                next_obs,rewards, *_  = env.step(actions_tosend)
-                done = 0 if step < (episod_length-1) else 1
-                step+=1
-                if done == 1:
-                    stats = env._side_channel_dict["StatsSideChannel"].get_and_reset_stats()
-    return stats
+                    actions_tosend.update(hactions_tosend)
+
+                    
+                    next_obs,rewards, *_  = env.step(actions_tosend)
+                    obs = next_obs
+                    done = 0 if step < (episod_length-1) else 1
+                    step+=1
+                    obs = next_obs
+                    for agent in agents:
+                        rwds[agent].append(rewards[agent])
+                    if done == 1:
+                        stats = env._side_channel_dict["StatsSideChannel"].get_and_reset_stats()
+    else : 
+        while (step < episod_length):
+                    obs_,action_mask,roles = utils.process_obs(obs,rep_length=rep_length)
+                    padded,obs_mask = pad_mask.pad_and_mask([obs_[agent] for agent in obs_.keys()])
+                    action_mask_ = pad_mask.pad_action_([action_mask[agent] for agent in obs_.keys()])
+                    with torch.no_grad():
+                        roles = torch.tensor(roles,dtype=torch.int32)
+                        actions, reports, _,_ = policy(roles = roles,obs = padded,obs_mask = obs_mask ,action_mask = action_mask_,evaluate=True)
+
+                    _, actions_tosend = utils.actions_tosend_(actions,reports,action_mask)
+                    next_obs,rewards, *_  = env.step(actions_tosend)
+                    obs = next_obs
+                    done = 0 if step < (episod_length-1) else 1
+                    step+=1
+                    obs = next_obs
+                    for agent in agents:
+                        rwds[agent].append(rewards[agent])
+                    if done == 1:
+                        stats = env._side_channel_dict["StatsSideChannel"].get_and_reset_stats()
+    rwd = {key : np.mean(rwds[key]) for key in agents}
+    return rwd,stats
 
 def compute_stats(stats):
         agents = ["Host", "Avatar_0", "Avatar_1", "Avatar_2", "Avatar_3", "Avatar_4"]
@@ -234,11 +325,11 @@ def compute_stats(stats):
             # You can now compute other metrics (e.g., accuracy, precision, recall, etc.) based on these sums
             total = TP_sum + TN_sum + FP_sum + FN_sum
 
-            accuracy = (TP_sum + TN_sum) / total if total > 0 else np.nan
-            precision = TP_sum / (TP_sum + FP_sum) if (TP_sum + FP_sum) > 0 else np.nan
-            recall = TP_sum / (TP_sum + FN_sum) if (TP_sum + FN_sum) > 0 else np.nan
-            f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else np.nan
-            specificity = TN_sum / (TN_sum + FP_sum) if (TN_sum + FP_sum) > 0 else np.nan
+            accuracy = (TP_sum + TN_sum) / total if total > 0 else 1
+            precision = TP_sum / (TP_sum + FP_sum) if (TP_sum + FP_sum) > 0 else 1
+            recall = TP_sum / (TP_sum + FN_sum) if (TP_sum + FN_sum) > 0 else 1
+            f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 1
+            specificity = TN_sum / (TN_sum + FP_sum) if (TN_sum + FP_sum) > 0 else 1
             metrics[agent] = {"Accuracy": accuracy, "Precision":precision,"Recall":recall,
                               "F1 Score":f1_score,"Specificity":specificity}
         return metrics
