@@ -12,7 +12,7 @@ class Buffer():
             normalize_advantage,
             rwd_scale,
             host_weight,
-                    ):
+            het = False):
         self.buffer_size = buffer_size
         self.agents = agents
         self.gae_lambda = gae_lambda
@@ -21,6 +21,7 @@ class Buffer():
         self.normalize_advantage = normalize_advantage
         self.rwd_scale = rwd_scale
         self.host_weight = host_weight
+        self.het  = het
         self.reset()
     def reset(self):
         self.obs = { key: [0] * self.buffer_size for key in self.agents }
@@ -92,13 +93,14 @@ class Buffer():
     def compute_advantage_and_returns(self):
         
         for agent in self.agents:
-            # normalized = np.array(self.rewards[agent])
-            # normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)
-            # adv,ret = self.indiv_gae_gt(normalized,self.values[agent],self.done,self.gae_lambda,self.gamma)
-            # normalize the rewards before
-            normalized = np.array(self.common_reward)
-            normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)
-            adv,ret = self.indiv_gae_gt(normalized,self.values[agent],self.done,self.gae_lambda,self.gamma)
+            if self.het :
+                normalized = np.array(self.rewards[agent])
+                normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)
+                adv,ret = self.indiv_gae_gt(normalized,self.values[agent],self.done,self.gae_lambda,self.gamma)
+            else: 
+                normalized = np.array(self.common_reward)
+                normalized = (normalized - np.mean(normalized))/ (np.std(normalized) + 1e-6)
+                adv,ret = self.indiv_gae_gt(normalized,self.values[agent],self.done,self.gae_lambda,self.gamma)
             self.advantages[agent] = adv
             self.returns[agent] = ret
     

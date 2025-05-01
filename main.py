@@ -59,9 +59,9 @@ def main(args):
         writer.close()
         env.close()
     else:
-        env = load_env(args.env_path_deploy,args.seed)
-        evaluate_from_checkpoint(env)
-        env.close()
+        #env = load_env(args.env_path,args.seed,rep_length= args.rep_length)
+        evaluate_from_checkpoint(args.env_path)
+        #env.close()
 
     
     

@@ -4,6 +4,7 @@ from src.actorcritic import *
 import src.utils as utils
 from src.buffer import Buffer
 import src.pad_mask as pad_mask
+from src.env import load_env
 #import matplotlib.pyplot as plt
 import os
 import warnings
@@ -17,7 +18,7 @@ def evaluate_test_env(env,policy,rep_length,episod_length,hpolicy=None):
         metrics = compute_stats(stats)
         results.append(metrics)
         ep_rewards.append(rewards)
-    avg_rewards = {key: np.mean([ep[key] for ep in ep_rewards]) for key in env.agents}
+    avg_rewards = {key: np.sum([ep[key] for ep in ep_rewards]) for key in env.agents}
     avg_metrics = metric_averages(results)
     return avg_rewards,avg_metrics
 
@@ -33,7 +34,7 @@ def metric_averages(data):
                         try:
                             val = float(value)
                         except Exception:
-                            val = 1
+                            val = 0
                         avatar_metrics.setdefault(metric, []).append(val)
                 elif "Host" in key:
                     host_data = data[ep].get("Host", {})
@@ -41,7 +42,7 @@ def metric_averages(data):
                         try:
                             val = float(value)
                         except Exception:
-                            val = 1
+                            val = 0
                         host_metrics.setdefault(metric, []).append(val)
                 else:
                     print("something is wrong")
@@ -64,48 +65,103 @@ def metric_averages(data):
             "Avatars": avatar_avg
         }
         return average_metrics 
-def evaluate_from_checkpoint(env,rep_length):
-    skip_policy_net = Policy_SkipREmbRole(
-        in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
-        rep_length=12, norm_first=True, max_pool=True
-    )
-    skip_checkpoint = torch.load("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-04_15-45-23/model_at987136.pt")
-    skip_policy_net.load_state_dict(skip_checkpoint["policy_state_dict"])
-    skip_policy_net.eval() 
+def evaluate_from_checkpoint(env_path,rep_length=5):
+    remb_checkpoint = ["Policy_2025-02-21_15-37-51",
+                        "Policy_2025-02-19_11-08-58",
+                        "Policy_2025-02-15_23-23-58",
+                        "Policy_2025-02-21_15-36-25",
+                        "Policy_2025-02-21_15-38-44"]
+    noremb_checkpoint = ["Policy_2025-02-21_15-37-31",
+                        "Policy_2025-02-19_11-09-23",
+                        "Policy_2025-02-15_23-23-12",
+                        "Policy_2025-02-21_15-36-43",
+                        "Policy_2025-02-21_15-39-02"] 
+    opt_checkpoints = ["Policy_2025-02-24_14-42-31","Policy_2025-02-24_14-42-53","Policy_2025-02-24_14-42-04","Policy_2025-02-24_14-43-19",
+                       "Policy_2025-02-24_14-43-43"]
+    max_fusion = [
+         "Policy_2025-03-03_11-13-06",
+         "Policy_2025-03-03_11-14-32",
+         "Policy_2025-03-03_11-13-43",
+         "Policy_2025-03-03_11-12-11",
+         "Policy_2025-03-03_11-15-12",
+    ]
+    # het_checkpoint = ["/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-35-32/model_at977920.pt",
+    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-36-55/model_at984064.pt",
+    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-36-32/model_at983040.pt",
+    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-34-47/model_at984064.pt",
+    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-37-37/model_at985088.pt"]
+    seed = [152643571,822948974,8451662,734212120, 940905178]
+    
+    for i in range(len(remb_checkpoint)):
+        env = load_env(env_path,seed[i],rep_length= rep_length)
+             
+        # role_policy_net = Policy_EmbRole(
+        #     in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
+        #     rep_length=rep_length, norm_first=True, max_pool=True
+        # )
+        # print("Seed: ", seed[i])
+        # path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + remb_checkpoint[i] + "/model_at1000448.pt" 
+        # print("Loaded : ", path)
+        # role_checkpoint = torch.load(path)
+        # role_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
+        # role_policy_net.eval() 
+        
+        # noemb_policy_net = Policy_NEmbRole(
+        #     in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
+        #     rep_length=rep_length, norm_first=True, max_pool=True
+        # )
+        # path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + noremb_checkpoint[i] + "/model_at1000448.pt" 
+        # print("Loaded : ", path)
+        # noemb_checkpoint = torch.load(path)
+        # noemb_policy_net.load_state_dict(noemb_checkpoint["policy_state_dict"])
+        # noemb_policy_net.eval()  
 
-    role_policy_net = Policy_EmbRole(
-        in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
-        rep_length=12, norm_first=True, max_pool=True
-    )
-    role_checkpoint = torch.load("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-04_22-27-49/model_at987136.pt")
-    role_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
-    role_policy_net.eval() 
 
-    noemb_policy_net = Policy_NEmbRole(
-        in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
-        rep_length=12, norm_first=True, max_pool=True
-    )
-    noemb_checkpoint = torch.load("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-04_22-29-18/model_at987136.pt")
-    noemb_policy_net.load_state_dict(noemb_checkpoint["policy_state_dict"])
-    noemb_policy_net.eval()  
+        # opt_role_policy_net = Policy_EmbRole(
+        #     in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
+        #     rep_length=rep_length, norm_first=True, max_pool=True
+        # )
+        # print("Seed: ", seed[i])
+        # path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + opt_checkpoints[i] + "/model_at1000448.pt" 
+        # print("Loaded : ", path)
+        # role_checkpoint = torch.load(path)
+        # role_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
+        # role_policy_net.eval() 
 
-    policies = [skip_policy_net,role_policy_net,noemb_policy_net ]
-    names = ["Policy_SkipREmbRole","Policy_EmbRole","Policy_NEmbRole"]
-    to_save = dict()
-    for i,policy in enumerate(policies):
-          results = []
-          for _ in range(64):
-            stats = collect_stats(env,policy,rep_length=rep_length)
-            metrics = compute_stats(stats)
-            results.append(metrics)
-          to_save[names[i]] = results
-    torch.save(to_save,"/home/amine.andam/HostClient/logs/to_plot.pt")
-    print("Done")
-    print("***"*10)
-    print_policy_averages(to_save)
-    print("***"*10)
-    print("to_save" ,to_save)
-    #save_policy_comparison_plot(to_save)
+        # policies = [opt_role_policy_net, role_policy_net,noemb_policy_net ]
+        # names = ["OPT_Policy_EmbRole", "Policy_EmbRole","Policy_NEmbRole"]
+        max_fusion_policy_net = Policy_EmbRole(
+            in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
+            rep_length=rep_length, norm_first=True, max_pool=True
+        )
+        print("Seed: ", seed[i])
+        path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + max_fusion[i] + "/model_at1000448.pt" 
+        print("Loaded : ", path)
+        role_checkpoint = torch.load(path)
+        max_fusion_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
+        max_fusion_policy_net.eval() 
+        policies = [max_fusion_policy_net ]
+        names = ["MaxFusion"]
+        
+        for i,policy in enumerate(policies):
+            results = []
+            ep_rewards = []
+            for _ in range(100):
+                rewards,stats = collect_stats(env,policy,rep_length=rep_length,episod_length = 60)
+                ep_rewards.append(rewards)
+                metrics = compute_stats(stats)
+                ep_rewards.append(rewards)
+                results.append(metrics)
+            print("Policy: " + names[i])
+            avg_rewards = {key: np.sum([ep[key] for ep in ep_rewards]) for key in env.agents}
+            avg_metrics = metric_averages(results)
+            print("average of rewards: ", avg_rewards)
+            print("average metrics: ", avg_metrics)
+            print("****" * 10)
+            break
+        print("+++++++++" * 10)
+        env.close()
+    
     return 0
 
 

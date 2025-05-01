@@ -61,7 +61,7 @@ class MARL_HEPPO():
     def init_trainer(self,policy):
         _ = self.env.reset()
         self.buffer = Buffer(buffer_size= self.buffer_size,batch_size = self.batch_size,agents = self.env.agents,normalize_advantage=self.normalize_advantage,
-                             gae_lambda = self.gae_lambda,gamma = self.gamma,rwd_scale = self.rwd_scale,host_weight=self.host_weight)
+                             gae_lambda = self.gae_lambda,gamma = self.gamma,rwd_scale = self.rwd_scale,host_weight=self.host_weight,het = True)
         ## Host policy
         self.hpolicy = policy(self.in_features,self.d_model,self.nhead,self.dim_feedforward,self.rep_length,self.norm_first,self.max_pool) 
         self.hpolicy = self.hpolicy.to(self.device)
