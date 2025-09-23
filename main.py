@@ -35,7 +35,7 @@ def main(args):
     set_seed(args.seed)
     if args.train:
         time_token = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        args.logs_path =  os.path.join("/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/runs/Last", args.logs_path + "_" + time_token)
+        args.logs_path =  os.path.join("", args.logs_path + "_" + time_token)
         args.save_path = args.save_path + "_" + time_token
         writer = SummaryWriter(args.logs_path) 
         hyperparams = vars(args)
