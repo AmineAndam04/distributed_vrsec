@@ -39,5 +39,5 @@ class Args:
     device: str = "cpu" #"cuda" 
     train:bool = True
     het:bool = False
-    env_path_deploy:str = "/home/amine.andam/HostClient/env/Deploy/AppLinux.x86_64"
+    env_path_deploy:str = "/AppLinux.x86_64"
     
