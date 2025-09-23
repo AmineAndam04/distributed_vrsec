@@ -33,9 +33,9 @@ class Args:
     normalize_advantage: bool = True
     norm_first: bool = True
     policy:str = "role_emb"
-    logs_path:str = "Embedded"#"/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/Hostclinet/Run-Policy_EmbRole-clip1-ent1"
-    env_path:str = "/home/amine.andam/HostClient/env/FixReport/AppLinux.x86_64" #"/home/amine.andam/HostClient/env/SameReaward/AppLinux.x86_64"
-    save_path:str = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy"
+    logs_path:str = "Embedded"
+    env_path:str = "/AppLinux.x86_64" 
+    save_path:str = "model/Policy"
     device: str = "cpu" #"cuda" 
     train:bool = True
     het:bool = False
