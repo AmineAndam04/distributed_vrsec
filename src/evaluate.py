@@ -85,57 +85,18 @@ def evaluate_from_checkpoint(env_path,rep_length=5):
          "Policy_2025-03-03_11-12-11",
          "Policy_2025-03-03_11-15-12",
     ]
-    # het_checkpoint = ["/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-35-32/model_at977920.pt",
-    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-36-55/model_at984064.pt",
-    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-36-32/model_at983040.pt",
-    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-34-47/model_at984064.pt",
-    #                   "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/Policy_2025-02-24_14-37-37/model_at985088.pt"]
     seed = [152643571,822948974,8451662,734212120, 940905178]
     
     for i in range(len(remb_checkpoint)):
         env = load_env(env_path,seed[i],rep_length= rep_length)
              
-        # role_policy_net = Policy_EmbRole(
-        #     in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
-        #     rep_length=rep_length, norm_first=True, max_pool=True
-        # )
-        # print("Seed: ", seed[i])
-        # path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + remb_checkpoint[i] + "/model_at1000448.pt" 
-        # print("Loaded : ", path)
-        # role_checkpoint = torch.load(path)
-        # role_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
-        # role_policy_net.eval() 
         
-        # noemb_policy_net = Policy_NEmbRole(
-        #     in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
-        #     rep_length=rep_length, norm_first=True, max_pool=True
-        # )
-        # path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + noremb_checkpoint[i] + "/model_at1000448.pt" 
-        # print("Loaded : ", path)
-        # noemb_checkpoint = torch.load(path)
-        # noemb_policy_net.load_state_dict(noemb_checkpoint["policy_state_dict"])
-        # noemb_policy_net.eval()  
-
-
-        # opt_role_policy_net = Policy_EmbRole(
-        #     in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
-        #     rep_length=rep_length, norm_first=True, max_pool=True
-        # )
-        # print("Seed: ", seed[i])
-        # path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + opt_checkpoints[i] + "/model_at1000448.pt" 
-        # print("Loaded : ", path)
-        # role_checkpoint = torch.load(path)
-        # role_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
-        # role_policy_net.eval() 
-
-        # policies = [opt_role_policy_net, role_policy_net,noemb_policy_net ]
-        # names = ["OPT_Policy_EmbRole", "Policy_EmbRole","Policy_NEmbRole"]
         max_fusion_policy_net = Policy_EmbRole(
             in_features=15, d_model=32, nhead=4, dim_feedforward=512, 
             rep_length=rep_length, norm_first=True, max_pool=True
         )
         print("Seed: ", seed[i])
-        path = "/home/amine.andam/lustre/vr_outsec-vh2sz1t4fks/users/amine.andam/model/" + max_fusion[i] + "/model_at1000448.pt" 
+        path = "" + max_fusion[i] + "/model_at1000448.pt" 
         print("Loaded : ", path)
         role_checkpoint = torch.load(path)
         max_fusion_policy_net.load_state_dict(role_checkpoint["policy_state_dict"])
@@ -230,80 +191,7 @@ def print_policy_averages(data):
 
 
 
-# def save_policy_comparison_plot(data, save_path="/home/amine.andam/HostClient/logs/policy_comparison.png"):
-#     """
-#     Saves histograms comparing the evaluation metrics for different policies to a file.
 
-#     Parameters:
-#         data (dict): A dictionary containing evaluation metrics for different policies.
-#         save_path (str): Path to save the generated plot.
-#     """
-#     # Extract policy names
-#     policy_names = list(data.keys())
-
-#     # Define the metrics to compare
-#     metrics = ["Accuracy", "Precision", "Recall", "F1 Score", "Specificity"]
-
-#     # Initialize data storage for plotting
-#     host_metrics = {metric: [] for metric in metrics}
-#     avatar_metrics = {metric: [] for metric in metrics}
-
-#     # Collect data from each policy
-#     for policy in policy_names:
-#         episodes = data[policy]
-
-#         host_avg = {metric: [] for metric in metrics}
-#         avatar_avg = {metric: [] for metric in metrics}
-
-#         for ep in episodes:
-#             # Extract host metrics
-#             host_data = ep.get("Host", {})
-#             for metric in metrics:
-#                 val = float(host_data.get(metric, np.nan))
-#                 host_avg[metric].append(val)
-
-#             # Extract avatar metrics
-#             for key, avatar_data in ep.items():
-#                 if key.startswith("Avatar"):
-#                     for metric in metrics:
-#                         val = float(avatar_data.get(metric, np.nan))
-#                         avatar_avg[metric].append(val)
-
-#         # Compute the mean values, ignoring NaNs
-#         for metric in metrics:
-#             host_filtered = np.array(host_avg[metric])[np.array(host_avg[metric]) > 0]
-#             avatar_filtered = np.array(avatar_avg[metric])[np.array(avatar_avg[metric]) > 0]
-
-#             host_metrics[metric].append(np.nan if host_filtered.size == 0 else np.nanmean(host_filtered))
-#             avatar_metrics[metric].append(np.nan if avatar_filtered.size == 0 else np.nanmean(avatar_filtered))
-
-#     # Plot histograms
-#     num_metrics = len(metrics)
-#     fig, axes = plt.subplots(2, num_metrics, figsize=(4 * num_metrics, 8))
-
-#     for i, metric in enumerate(metrics):
-#         # Plot Host metrics
-#         axes[0, i].bar(policy_names, host_metrics[metric], color='blue', alpha=0.7)
-#         axes[0, i].set_title(f"Host: {metric}")
-#         axes[0, i].set_xticklabels(policy_names, rotation=45, ha="right")
-#         axes[0, i].set_ylim(0, 1)  # Assuming metrics are between 0 and 1
-
-#         # Plot Avatar metrics
-#         axes[1, i].bar(policy_names, avatar_metrics[metric], color='green', alpha=0.7)
-#         axes[1, i].set_title(f"Avatars: {metric}")
-#         axes[1, i].set_xticklabels(policy_names, rotation=45, ha="right")
-#         axes[1, i].set_ylim(0, 1)
-
-#     plt.tight_layout()
-    
-#     # Ensure directory exists before saving
-#     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    
-#     # Save the plot
-#     plt.savefig(save_path, dpi=300)
-#     plt.close()
-
-#     print(f"Plot saved to {save_path}")
 
 
 
